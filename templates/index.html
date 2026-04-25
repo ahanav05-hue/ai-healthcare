@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Healthcare</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(to right, #1e3c72, #2a5298);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+    color:white;
+}
+
+.card {
+    background:white;
+    color:black;
+    padding:25px;
+    border-radius:20px;
+    width:90%;
+    max-width:400px;
+}
+
+input, select {
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+}
+
+button {
+    width:100%;
+    padding:12px;
+    background:#2a5298;
+    color:white;
+    border:none;
+    border-radius:10px;
+    margin-top:5px;
+    cursor:pointer;
+}
+
+.result {margin-top:10px;}
+.history {margin-top:10px;}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>🧠 AI Healthcare</h2>
+
+<form method="POST">
+<input name="age" placeholder="Age" required>
+
+<select name="fever"><option value="">Fever?</option><option value="1">Yes</option><option value="0">No</option></select>
+<select name="cough"><option value="">Cough?</option><option value="1">Yes</option><option value="0">No</option></select>
+<select name="fatigue"><option value="">Fatigue?</option><option value="1">Yes</option><option value="0">No</option></select>
+<select name="headache"><option value="">Headache?</option><option value="1">Yes</option><option value="0">No</option></select>
+<select name="sore_throat"><option value="">Sore throat?</option><option value="1">Yes</option><option value="0">No</option></select>
+
+<button type="submit">Predict</button>
+<button type="button" onclick="startVoice()">🎤 Voice Input</button>
+</form>
+
+{% if prediction %}
+<div class="result">Result: {{ prediction }}</div>
+<div>Confidence: {{ confidence }}%</div>
+<div>{{ message }}</div>
+
+<canvas id="chart"></canvas>
+
+<a href="/download">📄 Download Report</a>
+{% endif %}
+
+{% if history %}
+<div class="history">
+<h4>History</h4>
+<ul>
+{% for h in history %}
+<li>{{h.age}} → {{h.prediction}}</li>
+{% endfor %}
+</ul>
+</div>
+{% endif %}
+
+<!-- Chatbot -->
+<h4>💬 AI Assistant</h4>
+<input id="userInput" placeholder="Ask something...">
+<button onclick="chat()">Send</button>
+<p id="chatResponse"></p>
+
+</div>
+
+<!-- 🎤 VOICE SCRIPT (FIXED) -->
+<script>
+function startVoice() {
+
+    if (!('webkitSpeechRecognition' in window)) {
+        alert("Please use Google Chrome for voice input");
+        return;
+    }
+
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.start();
+
+    recognition.onresult = function(event) {
+        let text = event.results[0][0].transcript.toLowerCase();
+
+        console.log("Voice:", text);
+
+        if(text.includes("fever")) document.querySelector('[name="fever"]').value="1";
+        if(text.includes("cough")) document.querySelector('[name="cough"]').value="1";
+        if(text.includes("fatigue")) document.querySelector('[name="fatigue"]').value="1";
+        if(text.includes("headache")) document.querySelector('[name="headache"]').value="1";
+        if(text.includes("sore")) document.querySelector('[name="sore_throat"]').value="1";
+
+        alert("Detected: " + text);
+    };
+
+    recognition.onerror = function() {
+        alert("Mic error — allow microphone access");
+    };
+}
+</script>
+
+<!-- 🤖 CHATBOT -->
+<script>
+function chat() {
+    let input = document.getElementById("userInput").value.toLowerCase();
+    let response = "Consult a doctor.";
+
+    if(input.includes("covid")) response="Get tested and isolate.";
+    else if(input.includes("flu")) response="Rest and drink fluids.";
+    else if(input.includes("fever")) response="Fever may indicate infection.";
+
+    document.getElementById("chatResponse").innerText = response;
+}
+</script>
+
+<!-- 📊 GRAPH -->
+{% if prediction %}
+<script>
+new Chart(document.getElementById("chart"), {
+type:'bar',
+data:{
+labels:["Fever","Cough","Fatigue","Headache","Sore throat"],
+datasets:[{
+data:[
+{{request.form.get("fever",0)}},
+{{request.form.get("cough",0)}},
+{{request.form.get("fatigue",0)}},
+{{request.form.get("headache",0)}},
+{{request.form.get("sore_throat",0)}}
+]
+}]
+}
+});
+</script>
+{% endif %}
+
+</body>
+</html>
